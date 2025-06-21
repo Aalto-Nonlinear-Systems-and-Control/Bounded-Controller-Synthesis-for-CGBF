@@ -34,11 +34,17 @@ model = SOSModel(Mosek.Optimizer)
 @variable(model, lambda)
 @variable(model, delta)
 
+# Parameters to control shape
+R = 3.5  # Radius-like parameter
+a = 2.0  # Controls the curvature along the y-axis
+b = 1.5  # Controls horizontal tilt
 # Safe set and target set (h > 0)
 h = -(4*(x-2) - 2*y^3)^2 + 0.8*y^3 + 10
+h = a*(R - y)^2 - b*x - (x^4 + y^4 - R^2)^2
 
 # Goal region (g < 0)
 g = (((x-2) - 3.8)^2 / 1.2^2) + ((y - 1.9)^2 / 0.4^2) - 1
+g = ((x + 0.5)^2 / 1.0^2) + ((y - (2.1-4.0))^2 / 0.5^2) - 1 
 
 # Lie derivative of h along the contorl vector field
 Lhu = differentiate(h, vars[1])*u1 + differentiate(h, vars[2])*u2
@@ -76,15 +82,15 @@ println("delta/lambda: ", delta_poly/lambda_poly)
 
 # TAG Plots
 
-x_min = -2; x_max = 6
-y_min = -3; y_max = 3
+x_min = -2.5; x_max = 2.5
+y_min = -2.4; y_max = 2.4
 
 p = plot()
 
 plotPoly(-g, vars, [x_min, x_max], [y_min, y_max], :green, [0])
 plotPoly(h, vars, [x_min, x_max], [y_min, y_max], :blue, [0])
 
-add_streamlines!(p, u1_poly, u2_poly, [x_min, x_max], [y_min, y_max], 144)
+add_streamlines!(p, u1_poly, u2_poly, [x_min, x_max], [y_min, y_max], 100)
 
 # Save the figure
 timestamp = Dates.format(now(), "yyyy-mm-dd_HHMM")

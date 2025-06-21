@@ -132,7 +132,7 @@ function add_streamlines!(existing_plot, P, Q, xrange=[-5, 5], yrange=[-5, 5], d
     return existing_plot
 end
 
-function compute_streamline(x0, y0, P_func, Q_func, xrange, yrange, max_steps=200, step_size=1e-5)
+function compute_streamline(x0, y0, P_func, Q_func, xrange, yrange, max_steps=2000, step_size=1e-5)
     """
     Compute a single stream line starting from (x0, y0)
     """
