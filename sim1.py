@@ -62,7 +62,8 @@ if __name__ == "__main__":
     psi_x = psi.subs({y[0]:x[0], y[1]:x[1]})
 
     np.random.seed(6)
-    pts = np.random.random((4, 25000)) * 4 - 2
+    num_points = 300
+    pts = np.random.random((4, num_points)) * 4 - 2
 
     psi_fx = sp.lambdify(x, psi_x, "numpy")
     phi_fx = sp.lambdify(x, phi_x, "numpy")
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     pts_x_traj = [pts_init]
     pts_y_traj = [pts_init[[0, 1], :]]
 
-    for i in range(4800):
+    for i in range(50000):
         pts_cur = pts_x_traj[-1]
 
         pts_x_next = (dt * dyn_cl_f(*pts_cur)).squeeze(axis=1) + pts_cur
