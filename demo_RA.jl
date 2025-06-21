@@ -38,6 +38,7 @@ model = SOSModel(Mosek.Optimizer)
 R = 3.5  # Radius-like parameter
 a = 2.0  # Controls the curvature along the y-axis
 b = 1.5  # Controls horizontal tilt
+
 # Safe set and target set (h > 0)
 h = -(4*(x-2) - 2*y^3)^2 + 0.8*y^3 + 10
 h = a*(R - y)^2 - b*x - (x^4 + y^4 - R^2)^2
