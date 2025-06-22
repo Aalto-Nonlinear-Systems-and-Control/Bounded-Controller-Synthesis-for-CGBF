@@ -18,6 +18,7 @@ end
 function sos_solver(; h_exp, g_exp, ds, du)
     """
     Args:
+        ; (For kayword argumants syntax)
         h_exp: Julia math expression for safe region (h > 0)
         g_exp: Julia math expression for target region (g > 0)
         ds: Degree of auxiliary polynomials
