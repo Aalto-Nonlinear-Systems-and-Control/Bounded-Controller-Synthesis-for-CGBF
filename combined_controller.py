@@ -7,26 +7,35 @@ import matplotlib.pyplot as plt
 # Load julia functions
 jl.include("sos_solver.jl")
 
-# # Parameters to control shape
-# R = 3.5  # Radius-like parameter
-# a = 2.0  # Controls the curvature along the y-axis
-# b = 1.5  # Controls horizontal tilt
-
-# # Safe set and target set (h > 0)
-# h_exp = "a*(R - y)^2 - b*x - (x^4 + y^4 - R^2)^2"
-# # Replace variables with their values
-# h_exp = h_exp.replace('R', str(R))
-# h_exp = h_exp.replace('a', str(a))
-# h_exp = h_exp.replace('b', str(b))
-
-# # Goal region (g < 0)
-# g_exp = "((x + 0.5)^2 / 1.0^2) + ((y - (2.1-4.0))^2 / 0.5^2) - 1"
-
-k1_0, k1_1 = jl.sos_solver()
+# Parameters to control shape
+R = 3.5  # Radius-like parameter
+a = 2.0  # Controls the curvature along the y-axis
+b = 1.5  # Controls horizontal tilt
 
 # Input and state variale
 x = sp.symbols("x:4")
 y = sp.symbols("y:2")
+
+# Define the safe and target region
+psi = a*(R - y[1])**2 - b*y[0] - (y[0]**4 + y[1]**4 - R**2)**2 # Safe region
+phi = ((y[0] + 0.5)**2 / 1.0**2) + ((y[1] - (2.1-4.0))**2 / 0.5**2) - 1 # Targer region
+
+# Safe set and target set (h > 0)
+h_exp = "a*(R - y)^2 - b*x - (x^4 + y^4 - R^2)^2"
+# Replace variables with their values
+h_exp = h_exp.replace('R', str(R))
+h_exp = h_exp.replace('a', str(a))
+h_exp = h_exp.replace('b', str(b))
+
+# Goal region (g < 0)
+g_exp = "((x + 0.5)^2 / 1.0^2) + ((y - (2.1-4.0))^2 / 0.5^2) - 1"
+
+k1_0, k1_1 = jl.sos_solver(
+    h_exp = h_exp, 
+    g_exp = g_exp, 
+    ds = 8, 
+    du = 3)
+
 
 k1_0_expr = sp.sympify(k1_0)
 k1_1_expr = sp.sympify(k1_1)
@@ -38,7 +47,7 @@ subs_dict = {sp.Symbol('x'): y[0], sp.Symbol('y'): y[1]}
 k1_0_sp = k1_0_expr.subs(subs_dict)
 k1_1_sp = k1_1_expr.subs(subs_dict)
 
-
+# TAG Define the system model (Dubins car)
 f0 = x[3] * sp.cos(x[2])
 f1 = x[3] * sp.sin(x[2])
 
@@ -48,11 +57,12 @@ g = sp.Matrix([[0, 0], [0, 0], [1, 0], [0, 1]]) # Automatically treats as a 4*2 
 
 k1 = sp.Matrix([k1_0_sp, k1_1_sp]) # Automatically treats as a 2*1 column vector
 
-# Parameters to control shape
-R = 3.5  # Radius-like parameter
-a = 2.0  # Controls the curvature along the y-axis
-b = 1.5  # Controls horizontal tilt
-psi_y = sp.Matrix([a*(R - y[1])**2 - b*y[0] - (y[0]**4 + y[1]**4 - R**2)**2])
+
+mu_1 = 5
+lambda_ = 1.8513e-05
+
+# Parameters to control shape (h function: Safe set)
+psi_y = sp.Matrix([psi])
 
 # Define the output
 h = sp.Matrix([x[0], x[1]]) # 2*1 column vector
@@ -62,11 +72,7 @@ Lfh = h.jacobian(x) @ f
 F = Lfh.jacobian(x) @ f
 G = Lfh.jacobian(x) @ g
 
-
 Dy_psi = psi_y.jacobian(y)
-
-mu_1 = 5
-lambda_ = 1.8513e-05
 
 item1 = -F
 item2 = mu_1 * Dy_psi.T
@@ -83,13 +89,12 @@ dyn_cl = f + g * ku
 
 dyn_cl_f = sp.lambdify(x, dyn_cl, "numpy")
 
-psi = a*(R - y[1])**2 - b*y[0] - (y[0]**4 + y[1]**4 - R**2)**2 # Safe region
-phi = ((y[0] + 0.5)**2 / 1.0**2) + ((y[1] - (2.1-4.0))**2 / 0.5**2) - 1 # Targer region
 psi_gamma = sp.Matrix([psi]) - 1/(2*mu_1) * (Lfh - k1).T @ (Lfh - k1)
 
-psi_gamma_x = psi_gamma.subs({y[0]:x[0], y[1]:x[1]})
+# TAG Convert from h(y) to h(x)
 phi_x = phi.subs({y[0]:x[0], y[1]:x[1]})
 psi_x = psi.subs({y[0]:x[0], y[1]:x[1]})
+psi_gamma_x = psi_gamma.subs({y[0]:x[0], y[1]:x[1]})
 
 np.random.seed(6)
 num_points = 300
@@ -103,8 +108,8 @@ vals_psi_gamma = psi_gamma_fx(*pts).squeeze()
 psi_vals = psi_fx(*pts)
 phi_vals = phi_fx(*pts)
 
-# Find pts that inside the safe set and outside the target set
-index = np.nonzero((psi_vals >= 0) & (phi_vals > 0) & (vals_psi_gamma >= 0)) # HACK
+# TAG Find pts that inside the safe set and outside the target set
+index = np.nonzero((psi_vals >= 0) & (phi_vals > 0) & (vals_psi_gamma >= 0))
 # index = np.nonzero((psi_vals >= 0) & (phi_vals > 0))
 
 pts_init = pts[:, index].squeeze(axis = 1)
@@ -212,3 +217,31 @@ plt.ylabel("$y_2$")
 plt.title("Reach-Avoid Simulation for Dubins Car on a Track Field")
 plt.grid()
 plt.show()
+
+
+# traj_psi_gamma_vals = []
+
+# for i in range(traj_x.shape[-1]):
+#     this_traj_x = traj_x[..., i]
+#     this_psi_gamma_vals = psi_gamma_fx(
+#         this_traj_x[:, 0], this_traj_x[:, 1], this_traj_x[:, 2], this_traj_x[:, 3]
+#     ).squeeze()
+#     traj_psi_gamma_vals.append(this_psi_gamma_vals)
+
+# traj_psi_gamma_vals = np.stack(traj_psi_gamma_vals)
+# print(traj_psi_gamma_vals.shape)
+
+# t = np.arange(traj_psi_gamma_vals.shape[-1])
+# print(t.shape)
+
+# px = 1 / plt.rcParams["figure.dpi"]
+# fig, ax = plt.subplots(figsize=(640 * px, 600 * px), layout="constrained")
+# fig.set_dpi(150)
+
+# for i in range(traj_psi_gamma_vals.shape[0]):
+#     plt.plot(t, traj_psi_gamma_vals[i, ...], "black", alpha=0.5, linewidth=0.5)
+
+# # plt.axis("equal")
+# plt.autoscale(tight=True)
+
+# plt.show()

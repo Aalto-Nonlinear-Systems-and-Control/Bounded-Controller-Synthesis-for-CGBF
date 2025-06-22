@@ -7,36 +7,31 @@ using JuMP
 
 function string_to_poly(str, vars...)
     # Create a local scope with polynomial variables
-    local_dict = Dict(Symbol(string(v)) => v for v in vars)
-    return eval(Meta.parse(str))
+    temp_module = Module()
+    for v in vars
+        Core.eval(temp_module, :($(Symbol(string(v))) = $v))
+    end
+    return Core.eval(temp_module, Meta.parse(str))
 end
 
 
-function sos_solver()
+function sos_solver(; h_exp, g_exp, ds, du)
     """
     Args:
         h_exp: Julia math expression for safe region (h > 0)
         g_exp: Julia math expression for target region (g > 0)
+        ds: Degree of auxiliary polynomials
+        du: Degree of control polynomials
     """
     # Define polynomial variables
     @polyvar x y
     vars = [x, y]
 
-    # Parameters to control shape
-    R = 3.5  # Radius-like parameter
-    a = 2.0  # Controls the curvature along the y-axis
-    b = 1.5  # Controls horizontal tilt
-
-    # Safe set and target set (h > 0)
-    h = a*(R - y)^2 - b*x - (x^4 + y^4 - R^2)^2
-
-    # Goal region (g < 0)
-    g = ((x + 0.5)^2 / 1.0^2) + ((y - (2.1-4.0))^2 / 0.5^2) - 1 
+    h = string_to_poly(h_exp, x, y)
+    g = string_to_poly(g_exp, x, y)
 
     # Parameters
     xi0 = 1e-8
-    ds = 8
-    du = 3
 
     # Create monomials for control inputs
     monos_ux = monomials(vars, 0:du)
