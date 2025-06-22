@@ -12,7 +12,7 @@ function string_to_poly(str, vars...)
 end
 
 
-function sos_solver(h_exp, g_exp)
+function sos_solver()
     """
     Args:
         h_exp: Julia math expression for safe region (h > 0)
@@ -22,11 +22,16 @@ function sos_solver(h_exp, g_exp)
     @polyvar x y
     vars = [x, y]
 
-    # Safe region
-    h = string_to_poly(h_exp, x, y)
-    
-    # Goal region
-    g = string_to_poly(g_exp, x, y)
+    # Parameters to control shape
+    R = 3.5  # Radius-like parameter
+    a = 2.0  # Controls the curvature along the y-axis
+    b = 1.5  # Controls horizontal tilt
+
+    # Safe set and target set (h > 0)
+    h = a*(R - y)^2 - b*x - (x^4 + y^4 - R^2)^2
+
+    # Goal region (g < 0)
+    g = ((x + 0.5)^2 / 1.0^2) + ((y - (2.1-4.0))^2 / 0.5^2) - 1 
 
     # Parameters
     xi0 = 1e-8
@@ -66,8 +71,8 @@ function sos_solver(h_exp, g_exp)
     # Solve the optimisation problem
     optimize!(model)
 
-    u1_poly = value(u1)
-    u2_poly = value(u2)
+    u1_poly = string(value(u1))
+    u2_poly = string(value(u2))
 
     return u1_poly, u2_poly
 
