@@ -82,7 +82,7 @@ psi_x = psi.subs({y[0]:x[0], y[1]:x[1]})
 psi_gamma_x = psi_gamma.subs({y[0]:x[0], y[1]:x[1]})
 
 np.random.seed(6)
-num_points = 300
+num_points = 100
 pts = np.random.random((4, num_points)) * 4 - 2
 
 psi_fx = sp.lambdify(x, psi_x, "numpy")

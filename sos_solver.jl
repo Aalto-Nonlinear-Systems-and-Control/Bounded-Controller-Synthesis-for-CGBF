@@ -55,7 +55,8 @@ function sos_solver(; h_exp, g_exp, ds, du)
     @variable(model, s1, Poly(monos_s))
 
     # TAG SOS constraints
-    @constraint(model, Lhu - lambda*h + delta - s0*h - s1*g >= 0)
+    # @constraint(model, Lhu - lambda*h + delta - s0*h - s1*g >= 0)
+    @constraint(model, Lhu - lambda*h + delta - s0*h >= 0)
     @constraint(model, delta >= 0)
     @constraint(model, lambda - xi0 >= 0)
     @constraint(model, s0 >= 0)
