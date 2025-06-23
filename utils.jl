@@ -172,3 +172,42 @@ function compute_streamline(x0, y0, P_func, Q_func, xrange, yrange, max_steps=20
 end
 
 end
+
+
+module taylorApproxModule
+
+using DynamicPolynomials
+
+function taylor_sin(x, order::Int)
+    """
+        taylor_sin(x, order::Int)
+
+    Returns a polynomial approximation of sin(x) using Taylor expansion
+    up to the specified odd order (e.g., 1, 3, 5, ...).
+    """
+    @assert isodd(order) "Order for sin(x) must be an odd number."
+    approx = 0
+    for n in 0:((order - 1) ÷ 2)
+        term = (-1)^n * x^(2n + 1) / factorial(2n + 1)
+        approx += term
+    end
+    return approx
+end
+
+function taylor_cos(x, order::Int)
+    """
+        taylor_cos(x, order::Int)
+
+    Returns a polynomial approximation of cos(x) using Taylor expansion
+    up to the specified even order (e.g., 0, 2, 4, ...).
+    """
+    @assert iseven(order) "Order for cos(x) must be an even number."
+    approx = 0
+    for n in 0:(order ÷ 2)
+        term = (-1)^n * x^(2n) / factorial(2n)
+        approx += term
+    end
+    return approx
+end
+
+end
