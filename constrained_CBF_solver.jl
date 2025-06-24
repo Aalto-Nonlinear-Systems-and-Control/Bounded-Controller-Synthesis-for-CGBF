@@ -31,10 +31,11 @@ function cbf_solver()
 
     # Expression of value function h
     h = a*(R - x[2])^2 - b*x[1] - (x[1]^4 + x[2]^4 - R^2)^2 
+    h = a^2 - x[1]^2 - x[2]^2
 
     jacobian_h = reshape([differentiate(h, x[i]) for i in 1:3], 1, 3)
     Lfh = jacobian_h * reshape(f, 3, 1) # Size = (1, 1)
-    Lgh = jacobian_h * reshape(g, 3, 2)
+    Lgh = jacobian_h * g
 
     # Create monomials for control inputs
     monos_ux = monomials(x, 0:du)
@@ -47,18 +48,17 @@ function cbf_solver()
     @variable(model, alpha)
     @variable(model, delta)
 
-    u = reshape([u1; u2], 2, 1)
-    Lghu = Lgh * u
+    u = [u1; u2]
 
     # Auxiliary polynomials
-    # monos_s = monomials(x, 0:ds)
-    # @variable(model, s0, Poly(monos_s))
+    monos_s = monomials(x, 0:ds)
+    @variable(model, s0, Poly(monos_s))
 
     # SOS constraints
-    @constraint(model, Lfh[1, 1] + Lghu[1, 1] + alpha * h + delta >= 0)
+    @constraint(model, Lfh[1] + (Lgh * u)[1] - alpha * h - s0 * h + delta >= 0)
     @constraint(model, delta >= 0)
     @constraint(model, alpha - xi0 >= 0)
-    # @constraint(model, s0 >= 0)
+    @constraint(model, s0 >= 0)
 
     # Set objective function (Minimise delta)
     @objective(model, Min, delta)
@@ -74,7 +74,7 @@ function cbf_solver()
 end
 
 
-# u1, u2 = cbf_solver()
+u1, u2, alpha = cbf_solver()
 
-# println(u1)
-# println(u2)
+println(u1)
+println(u2)

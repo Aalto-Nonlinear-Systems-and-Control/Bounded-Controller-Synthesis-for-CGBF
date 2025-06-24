@@ -20,6 +20,7 @@ b = 1.5  # Controls horizontal tilt
 
 # Define the safe and target region
 psi = a*(R - y[1])**2 - b*y[0] - (y[0]**4 + y[1]**4 - R**2)**2 # Safe region
+psi = a**2 - y[0]**2 - y[1]**2
 
 # Define the system dynamics (Dubins car, 2 relative degree)
 # f0 = x[3] * sp.cos(x[2])
