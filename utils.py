@@ -90,6 +90,10 @@ def julia_indexed_str2py_expr(expr_str: str, symbol_list: tuple, var_name: str =
 
     return expr
 
+def convert_vars_to_indexed(expr):
+    # Replace x followed by digits with x[digits]
+    return re.sub(r'\bx(\d+)\b', r'x[\1]', expr)
+
 def traj_plot(pts_init, traj_x, traj_y, psi, phi=None):
     """
     Trajectory and level set plot of python + julia solved SOS programming problem.

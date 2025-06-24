@@ -1,6 +1,6 @@
 import juliacall
 from juliacall import Main as jl
-from utils import py_expr2julia_str, julia_str2py_expr, traj_plot, u_plot
+from utils import py_expr2julia_str, julia_str2py_expr, traj_plot, u_plot, convert_vars_to_indexed
 import sympy as sp
 import numpy as np
 
@@ -12,7 +12,6 @@ R = 3.5  # Radius-like parameter
 a = 2.0  # Controls the curvature along the y-axis
 b = 1.5  # Controls horizontal tilt
 
-mu_1 = 5
 lambda_ = 1.8513e-05
 
 # Input and state variale
@@ -59,76 +58,102 @@ G = Lfh.jacobian(x) @ g
 Dy_psi = psi_y.jacobian(y)
 
 item1 = -F
-item2 = mu_1 * Dy_psi.T
+item2 = mu * Dy_psi.T
 item3 = k1.jacobian(sp.Matrix([y[0], y[1]])) @ Lfh
 item4 = lambda_/2 * (Lfh - k1)
 item2 = item2.subs({y[0]:x[0], y[1]:x[1]})
 item3 = item3.subs({y[0]:x[0], y[1]:x[1]})
 item4 = item4.subs({y[0]:x[0], y[1]:x[1]})
 
-ku = sp.inv_quick(G) @ (item1 + item2 + item3 + item4)
+# TODO send to sos
+ku = sp.inv_quick(G) @ (item1 + item2 + item3 + item4) # Shape = (2, 1)
+
+var_mapping = {
+    'x3': 'x4',
+    'x2': 'x3', 
+    'x1': 'x2',
+    'x0': 'x1',  
+    'mu': 'mu'
+    }
+ku1_str = py_expr2julia_str(py_expr=ku[0], var_mapping=var_mapping)
+ku2_str = py_expr2julia_str(py_expr=ku[1], var_mapping=var_mapping)
+
+ku1_indexed_str = convert_vars_to_indexed(ku1_str)
+ku2_indexed_str = convert_vars_to_indexed(ku2_str)
+
 dyn_cl = f + g * ku
 # dyn_cl = sp.simplify(dyn_cl)
 
 dyn_cl_f = sp.lambdify(x, dyn_cl, "numpy")
 ku_f = sp.lambdify(x, ku, "numpy")
 
-psi_gamma = sp.Matrix([psi]) - 1/(2*mu_1) * (Lfh - k1).T @ (Lfh - k1)
+psi_gamma = sp.Matrix([psi]) - 1/(2*mu) * (Lfh - k1).T @ (Lfh - k1) # Shape = (1, 1)
 
 # TAG Convert from h(y) to h(x)
 phi_x = phi.subs({y[0]:x[0], y[1]:x[1]})
 psi_x = psi.subs({y[0]:x[0], y[1]:x[1]})
-psi_gamma_x = psi_gamma.subs({y[0]:x[0], y[1]:x[1]})
+# TODO send to sos
+psi_gamma_x = psi_gamma.subs({y[0]:x[0], y[1]:x[1]}) # Shape = (1, 1)
+psi_gamma_str = py_expr2julia_str(py_expr=psi_gamma_x[0], var_mapping=var_mapping)
+psi_gamma_indexed_str = convert_vars_to_indexed(psi_gamma_str)
 
-np.random.seed(6)
-num_points = 100
-pts = np.random.random((4, num_points)) * 4 - 2
+with open("output.txt", "w") as file:
+    file.write(f"ku1:\n")
+    file.write(ku1_indexed_str)
+    file.write(f"\nku2:\n")
+    file.write(ku2_indexed_str)
+    file.write(f"\npsi gamma: \n")
+    file.write(psi_gamma_indexed_str)
 
-psi_fx = sp.lambdify(x, psi_x, "numpy")
-phi_fx = sp.lambdify(x, phi_x, "numpy")
-psi_gamma_fx = sp.lambdify(x, psi_gamma_x, "numpy")
+# np.random.seed(6)
+# num_points = 100
+# pts = np.random.random((4, num_points)) * 4 - 2
 
-vals_psi_gamma = psi_gamma_fx(*pts).squeeze()
-psi_vals = psi_fx(*pts)
-phi_vals = phi_fx(*pts)
+# psi_fx = sp.lambdify(x, psi_x, "numpy")
+# phi_fx = sp.lambdify(x, phi_x, "numpy")
+# psi_gamma_fx = sp.lambdify(x, psi_gamma_x, "numpy")
 
-# TAG Find pts that inside the safe set and outside the target set
-index = np.nonzero((psi_vals >= 0) & (vals_psi_gamma >= 0) & (phi_vals > 0))
-# index = np.nonzero((psi_vals >= 0) & (phi_vals > 0))
+# vals_psi_gamma = psi_gamma_fx(*pts).squeeze()
+# psi_vals = psi_fx(*pts)
+# phi_vals = phi_fx(*pts)
 
-pts_init = pts[:, index].squeeze(axis = 1)
+# # TAG Find pts that inside the safe set and outside the target set
+# index = np.nonzero((psi_vals >= 0) & (vals_psi_gamma >= 0) & (phi_vals > 0))
+# # index = np.nonzero((psi_vals >= 0) & (phi_vals > 0))
 
-dt = 1e-4
+# pts_init = pts[:, index].squeeze(axis = 1)
 
-ku_traj = []
-pts_x_traj = [pts_init]
-pts_y_traj = [pts_init[[0, 1], :]]
+# dt = 1e-4
 
-time_range = 10000
-for i in range(time_range):
-    pts_cur = pts_x_traj[-1]
+# ku_traj = []
+# pts_x_traj = [pts_init]
+# pts_y_traj = [pts_init[[0, 1], :]]
 
-    pts_x_next = (dt * dyn_cl_f(*pts_cur)).squeeze(axis=1) + pts_cur
-    pts_y_next = pts_x_next[[0, 1], :]
-    ku_next = ku_f(*pts_cur).squeeze(axis=1)
+# time_range = 10000
+# for i in range(time_range):
+#     pts_cur = pts_x_traj[-1]
 
-    pts_x_traj.append(pts_x_next)
-    pts_y_traj.append(pts_y_next)
-    ku_traj.append(ku_next)
+#     pts_x_next = (dt * dyn_cl_f(*pts_cur)).squeeze(axis=1) + pts_cur
+#     pts_y_next = pts_x_next[[0, 1], :]
+#     ku_next = ku_f(*pts_cur).squeeze(axis=1)
 
-traj_x = np.stack(pts_x_traj)
-traj_y = np.stack(pts_y_traj)
-traj_ku = np.stack(ku_traj)
+#     pts_x_traj.append(pts_x_next)
+#     pts_y_traj.append(pts_y_next)
+#     ku_traj.append(ku_next)
 
-traj_plot(
-    pts_init=pts_init,
-    traj_x=traj_x,
-    traj_y=traj_y,
-    psi=sp.lambdify(y, psi, "numpy")
-    # phi=sp.lambdify(y, phi, "numpy")
-)
+# traj_x = np.stack(pts_x_traj)
+# traj_y = np.stack(pts_y_traj)
+# traj_ku = np.stack(ku_traj)
 
-u_plot(
-    traj_ku=traj_ku,
-    time_range=time_range
-)
+# traj_plot(
+#     pts_init=pts_init,
+#     traj_x=traj_x,
+#     traj_y=traj_y,
+#     psi=sp.lambdify(y, psi, "numpy")
+#     # phi=sp.lambdify(y, phi, "numpy")
+# )
+
+# u_plot(
+#     traj_ku=traj_ku,
+#     time_range=time_range
+# )

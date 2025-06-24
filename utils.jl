@@ -185,7 +185,7 @@ module taylorApproxModule
 
 using DynamicPolynomials
 
-function taylor_sin(x, order::Int)
+function taylor_sin(x, order::Int = 7)
     """
         taylor_sin(x, order::Int)
 
@@ -201,7 +201,7 @@ function taylor_sin(x, order::Int)
     return approx
 end
 
-function taylor_cos(x, order::Int)
+function taylor_cos(x, order::Int = 6)
     """
         taylor_cos(x, order::Int)
 
