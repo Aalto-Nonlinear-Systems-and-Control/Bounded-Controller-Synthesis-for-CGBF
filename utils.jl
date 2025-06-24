@@ -42,7 +42,6 @@ function plotPoly(polyExpr, vars, x_range, y_range, colour, level_values=[0])
              aspect_ratio=:equal)
 end
 
-
 function expr2fun(poly)
     """
     Convert polynomial expression to function
@@ -84,6 +83,14 @@ function expr2fun(poly)
     end
 end
 
+function string2poly(str, vars...)
+    # Create a local scope with polynomial variables
+    temp_module = Module()
+    for v in vars
+        Core.eval(temp_module, :($(Symbol(string(v))) = $v))
+    end
+    return Core.eval(temp_module, Meta.parse(str))
+end
 
 function add_streamlines!(existing_plot, P, Q, xrange=[-5, 5], yrange=[-5, 5], density=30)
     """

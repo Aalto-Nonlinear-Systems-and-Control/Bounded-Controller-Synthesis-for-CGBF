@@ -7,10 +7,10 @@ using JuMP
 include("utils.jl")
 using .taylorApproxModule: taylor_cos, taylor_sin
 
-function hocbf_solver()
+function cbf_solver()
 
-    # Indexed polynomial variables x[1] x[2]
-    @polyvar x[1:4]
+    # Indexed polynomial variables x, y, theta
+    @polyvar x[1:3] 
 
     # Parameters to control shape
     R = 3.5  # Radius-like parameter
@@ -23,22 +23,18 @@ function hocbf_solver()
     xi0 = 1e-8
 
     # System dynamics
-    f0 = x[4] * taylor_cos(x[3], 8)
-    f1 = x[4] * taylor_sin(x[3], 7)
+    gcos = taylor_cos(x[3], 8)
+    gsin = taylor_sin(x[3], 7)
 
-    f = [f0, f1, 0, 0] # 4-element vector (Julia treats as column vector)
-    g = [0 0; 0 0; 1 0; 0 1] # 4x2 matrix
+    f = [0, 0, 0] # 4-element vector (Julia treats as column vector)
+    g = [gcos 0; gsin 0; 0 1] # 4x2 matrix
 
     # Expression of value function h
     h = a*(R - x[2])^2 - b*x[1] - (x[1]^4 + x[2]^4 - R^2)^2 
 
-    jacobian_h = reshape([differentiate(h, x[i]) for i in 1:4], 1, 4)
-    Lfh = jacobian_h * reshape(f, 4, 1) # Size = (1, 1)
-
-    jacobian_Lfh = reshape([differentiate(Lfh[1, 1], x[i]) for i in 1:4], 1, 4)
-    Lf2h = jacobian_Lfh * reshape(f, 4, 1) # Size = (1, 1)
-    LgLfh = jacobian_Lfh * g # Size = (1, 2)
-
+    jacobian_h = reshape([differentiate(h, x[i]) for i in 1:3], 1, 3)
+    Lfh = jacobian_h * reshape(f, 3, 1) # Size = (1, 1)
+    Lgh = jacobian_h * reshape(g, 3, 2)
 
     # Create monomials for control inputs
     monos_ux = monomials(x, 0:du)
@@ -48,22 +44,20 @@ function hocbf_solver()
     # Define control polynomial variables
     @variable(model, u1, Poly(monos_ux))
     @variable(model, u2, Poly(monos_ux))
-    @variable(model, alpha1)
-    @variable(model, alpha2)
+    @variable(model, alpha)
     @variable(model, delta)
 
     u = reshape([u1; u2], 2, 1)
-    LgLfhu = LgLfh * u
+    Lghu = Lgh * u
 
     # Auxiliary polynomials
     # monos_s = monomials(x, 0:ds)
-    # @variable(model, s0, Polynomial(monos_s))
+    # @variable(model, s0, Poly(monos_s))
 
     # SOS constraints
-    @constraint(model, Lf2h[1, 1] + LgLfhu[1, 1] + alpha1 * Lfh[1, 1] + alpha2 * h + delta >= 0)
+    @constraint(model, Lfh[1, 1] + Lghu[1, 1] + alpha * h + delta >= 0)
     @constraint(model, delta >= 0)
-    @constraint(model, alpha1 - xi0 >= 0)
-    @constraint(model, alpha2 - xi0 >= 0)
+    @constraint(model, alpha - xi0 >= 0)
     # @constraint(model, s0 >= 0)
 
     # Set objective function (Minimise delta)
@@ -74,13 +68,13 @@ function hocbf_solver()
 
     u1_poly = string(value(u1))
     u2_poly = string(value(u2))
-    alpha2 = value(alpha2)
+    alpha = value(alpha)
 
-    return u1_poly, u2_poly, alpha2
+    return u1_poly, u2_poly, alpha
 end
 
 
-# u1, u2 = hocbf_solver()
+# u1, u2 = cbf_solver()
 
 # println(u1)
 # println(u2)

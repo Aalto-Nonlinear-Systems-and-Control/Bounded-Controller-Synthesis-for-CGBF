@@ -3,7 +3,6 @@ from juliacall import Main as jl
 from utils import py_expr2julia_str, julia_str2py_expr, traj_plot
 import sympy as sp
 import numpy as np
-import matplotlib.pyplot as plt
 
 # Load julia functions
 jl.include("sos_solver.jl")

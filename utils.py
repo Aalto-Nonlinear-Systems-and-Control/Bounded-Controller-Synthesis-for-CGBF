@@ -1,6 +1,7 @@
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
+import re
 
 def py_expr2julia_str(py_expr, var_mapping=None):
     """
@@ -61,7 +62,35 @@ def julia_str2py_expr(julia_string, vars, var_mapping=None):
 
     return py_expr
 
-def traj_plot(pts_init, traj_x, traj_y, psi, phi):
+def julia_indexed_str2py_expr(expr_str: str, symbol_list: tuple, var_name: str = 'x') -> sp.Expr:
+    """
+    Converts a string with indexed variables (e.g., 'x[1]^2 + x[2]') into a SymPy expression,
+    using an existing list/tuple of SymPy symbols like x = symbols("x:4").
+    
+    Args:
+        expr_str (str): The input expression string using ^ for exponentiation and indexed variables.
+        symbol_list (tuple): A tuple/list of sympy symbols (e.g., from symbols("x:4")).
+        var_name (str): The base name of the variable, default is 'x'.
+
+    Returns:
+        sympy.Expr: The parsed SymPy expression.
+    """
+    # Step 1: Replace '^' with '**'
+    expr_str = expr_str.replace('^', '**')
+    
+    # Step 2: Replace x[i] with actual symbol names like x0, x1, etc.
+    for i, sym in enumerate(symbol_list):
+        expr_str = re.sub(rf'{re.escape(var_name)}\[{i+1}\]', str(sym), expr_str)
+
+    # Build local dictionary for sympify
+    local_dict = {str(sym): sym for sym in symbol_list}
+
+    # Parse the expression
+    expr = sp.sympify(expr_str, locals=local_dict)
+
+    return expr
+
+def traj_plot(pts_init, traj_x, traj_y, psi, phi=None):
     """
     Trajectory and level set plot of python + julia solved SOS programming problem.
 
@@ -86,7 +115,8 @@ def traj_plot(pts_init, traj_x, traj_y, psi, phi):
     # psi_fy = sp.lambdify(y, psi, "numpy")
 
     Z_psi = psi(Y1, Y2) # Safe region (h > 0)
-    Z_phi = phi(Y1, Y2) # Target region
+    if(phi != None):
+        Z_phi = phi(Y1, Y2) # Target region
 
     # Safe region plot
     track = ax.contourf(
@@ -103,16 +133,17 @@ def traj_plot(pts_init, traj_x, traj_y, psi, phi):
     cbar.set_label(r"Value of $\psi(\boldsymbol{y})$")
 
     # Target region plot
-    ax.contourf(
-        Y1,
-        Y2,
-        Z_phi,
-        levels = [-np.inf, 0],
-        alpha = 0.8,
-        colors = "skyblue",
-        # cmap = "viridis",
-        zorder = 2,
-    )
+    if (phi != None):
+        ax.contourf(
+            Y1,
+            Y2,
+            Z_phi,
+            levels = [-np.inf, 0],
+            alpha = 0.8,
+            colors = "skyblue",
+            # cmap = "viridis",
+            zorder = 2,
+        )
 
     for i in range(traj_y.shape[-1]):
         plt.plot(

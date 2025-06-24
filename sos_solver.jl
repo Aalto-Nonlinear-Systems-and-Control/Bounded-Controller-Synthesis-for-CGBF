@@ -4,16 +4,8 @@ using Mosek
 using MosekTools
 using JuMP
 
-
-function string_to_poly(str, vars...)
-    # Create a local scope with polynomial variables
-    temp_module = Module()
-    for v in vars
-        Core.eval(temp_module, :($(Symbol(string(v))) = $v))
-    end
-    return Core.eval(temp_module, Meta.parse(str))
-end
-
+include("utils.jl")
+using .utilsModule: string2poly
 
 function sos_solver(; h_exp, g_exp, ds, du)
     """
@@ -28,8 +20,8 @@ function sos_solver(; h_exp, g_exp, ds, du)
     @polyvar x y
     vars = [x, y]
 
-    h = string_to_poly(h_exp, x, y)
-    g = string_to_poly(g_exp, x, y)
+    h = string2poly(h_exp, x, y)
+    g = string2poly(g_exp, x, y)
 
     # Parameters
     xi0 = 1e-8
