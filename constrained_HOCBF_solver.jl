@@ -27,7 +27,7 @@ function hocbf_solver()
     f1 = x[4] * taylor_sin(x[3], 7)
 
     f = [f0, f1, 0, 0] # 4-element vector (Julia treats as column vector)
-    g = [0 0; 0 0; 1 0; 0 1] # 4x2 matrix
+    g = [0 0; 0 0; 0 1; 1 0] # 4x2 matrix
 
     # Expression of value function h
     h = a*(R - x[2])^2 - b*x[1] - (x[1]^4 + x[2]^4 - R^2)^2 
@@ -60,7 +60,8 @@ function hocbf_solver()
     # @variable(model, s0, Polynomial(monos_s))
 
     # SOS constraints
-    @constraint(model, Lf2h[1, 1] + LgLfhu[1, 1] + alpha1 * Lfh[1, 1] + alpha2 * h + delta >= 0)
+    # BUG quadratic constraint!!
+    @constraint(model, Lf2h[1, 1] + LgLfhu[1, 1] + alpha1 * Lfh[1, 1] + alpha1 * alpha2 * h + delta >= 0)
     @constraint(model, delta >= 0)
     @constraint(model, alpha1 - xi0 >= 0)
     @constraint(model, alpha2 - xi0 >= 0)
@@ -80,7 +81,7 @@ function hocbf_solver()
 end
 
 
-# u1, u2 = hocbf_solver()
+u1, u2 = hocbf_solver()
 
-# println(u1)
-# println(u2)
+println(u1)
+println(u2)

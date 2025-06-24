@@ -1,6 +1,6 @@
 import juliacall
 from juliacall import Main as jl
-from utils import py_expr2julia_str, julia_str2py_expr, traj_plot
+from utils import py_expr2julia_str, julia_str2py_expr, traj_plot, u_plot
 import sympy as sp
 import numpy as np
 
@@ -18,6 +18,7 @@ lambda_ = 1.8513e-05
 # Input and state variale
 x = sp.symbols("x:4")
 y = sp.symbols("y:2")
+mu = sp.symbols('mu')
 
 # Define the safe and target region
 psi = a*(R - y[1])**2 - b*y[0] - (y[0]**4 + y[1]**4 - R**2)**2 # Safe region
@@ -28,7 +29,6 @@ g_exp = py_expr2julia_str(phi)
 
 k1_0, k1_1 = jl.sos_solver(
     h_exp = h_exp, 
-    g_exp = g_exp, 
     ds = 8, 
     du = 3)
 
@@ -67,11 +67,11 @@ item3 = item3.subs({y[0]:x[0], y[1]:x[1]})
 item4 = item4.subs({y[0]:x[0], y[1]:x[1]})
 
 ku = sp.inv_quick(G) @ (item1 + item2 + item3 + item4)
-
 dyn_cl = f + g * ku
 # dyn_cl = sp.simplify(dyn_cl)
 
 dyn_cl_f = sp.lambdify(x, dyn_cl, "numpy")
+ku_f = sp.lambdify(x, ku, "numpy")
 
 psi_gamma = sp.Matrix([psi]) - 1/(2*mu_1) * (Lfh - k1).T @ (Lfh - k1)
 
@@ -93,61 +93,42 @@ psi_vals = psi_fx(*pts)
 phi_vals = phi_fx(*pts)
 
 # TAG Find pts that inside the safe set and outside the target set
-index = np.nonzero((psi_vals >= 0) & (phi_vals > 0) & (vals_psi_gamma >= 0))
+index = np.nonzero((psi_vals >= 0) & (vals_psi_gamma >= 0) & (phi_vals > 0))
 # index = np.nonzero((psi_vals >= 0) & (phi_vals > 0))
 
 pts_init = pts[:, index].squeeze(axis = 1)
 
-dt = 1e-5
+dt = 1e-4
 
+ku_traj = []
 pts_x_traj = [pts_init]
 pts_y_traj = [pts_init[[0, 1], :]]
 
-for i in range(50000):
+time_range = 10000
+for i in range(time_range):
     pts_cur = pts_x_traj[-1]
 
     pts_x_next = (dt * dyn_cl_f(*pts_cur)).squeeze(axis=1) + pts_cur
     pts_y_next = pts_x_next[[0, 1], :]
+    ku_next = ku_f(*pts_cur).squeeze(axis=1)
 
     pts_x_traj.append(pts_x_next)
     pts_y_traj.append(pts_y_next)
+    ku_traj.append(ku_next)
 
 traj_x = np.stack(pts_x_traj)
 traj_y = np.stack(pts_y_traj)
+traj_ku = np.stack(ku_traj)
 
 traj_plot(
     pts_init=pts_init,
     traj_x=traj_x,
     traj_y=traj_y,
-    psi=sp.lambdify(y, psi, "numpy"),
-    phi=sp.lambdify(y, phi, "numpy")
+    psi=sp.lambdify(y, psi, "numpy")
+    # phi=sp.lambdify(y, phi, "numpy")
 )
 
-
-# TAG
-# traj_psi_gamma_vals = []
-
-# for i in range(traj_x.shape[-1]):
-#     this_traj_x = traj_x[..., i]
-#     this_psi_gamma_vals = psi_gamma_fx(
-#         this_traj_x[:, 0], this_traj_x[:, 1], this_traj_x[:, 2], this_traj_x[:, 3]
-#     ).squeeze()
-#     traj_psi_gamma_vals.append(this_psi_gamma_vals)
-
-# traj_psi_gamma_vals = np.stack(traj_psi_gamma_vals)
-# print(traj_psi_gamma_vals.shape)
-
-# t = np.arange(traj_psi_gamma_vals.shape[-1])
-# print(t.shape)
-
-# px = 1 / plt.rcParams["figure.dpi"]
-# fig, ax = plt.subplots(figsize=(640 * px, 600 * px), layout="constrained")
-# fig.set_dpi(150)
-
-# for i in range(traj_psi_gamma_vals.shape[0]):
-#     plt.plot(t, traj_psi_gamma_vals[i, ...], "black", alpha=0.5, linewidth=0.5)
-
-# # plt.axis("equal")
-# plt.autoscale(tight=True)
-
-# plt.show()
+u_plot(
+    traj_ku=traj_ku,
+    time_range=time_range
+)

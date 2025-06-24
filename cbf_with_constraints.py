@@ -6,11 +6,11 @@ import sympy as sp
 import matplotlib.pyplot as plt
 
 # Load julia functions
-jl.include("constrained_CBF_solver.jl")
+jl.include("constrained_HOCBF_solver.jl")
 
 # State and output variables
-# x = sp.symbols("x:4")
-x = sp.symbols("x:3") # x, y, theta
+x = sp.symbols("x:4")
+# x = sp.symbols("x:3") # x, y, theta
 y = sp.symbols("y:2")
 
 # Parameters to control shape
@@ -20,19 +20,19 @@ b = 1.5  # Controls horizontal tilt
 
 # Define the safe and target region
 psi = a*(R - y[1])**2 - b*y[0] - (y[0]**4 + y[1]**4 - R**2)**2 # Safe region
-psi = a**2 - y[0]**2 - y[1]**2
+# psi = a**2 - y[0]**2 - y[1]**2
 
 # Define the system dynamics (Dubins car, 2 relative degree)
-# f0 = x[3] * sp.cos(x[2])
-# f1 = x[3] * sp.sin(x[2])
+f0 = x[3] * sp.cos(x[2])
+f1 = x[3] * sp.sin(x[2])
 
-# f = sp.Matrix([f0, f1, 0, 0]) # Automatically treats as a 4*1 column vector
-# g = sp.Matrix([[0, 0], [0, 0], [1, 0], [0, 1]]) # Automatically treats as a 4*2 matrix
+f = sp.Matrix([f0, f1, 0, 0]) # Automatically treats as a 4*1 column vector
+g = sp.Matrix([[0, 0], [0, 0], [0, 1], [1, 0]]) # Automatically treats as a 4*2 matrix
 
 # Define the system dynamics (Dubins car)
 
-f = sp.Matrix([0, 0, 0]) # Automatically treats as a 4*1 column vector
-g = sp.Matrix([[sp.cos(x[2]), 0], [sp.sin(x[2]), 0], [0, 1]]) # Automatically treats as a 4*2 matrix
+# f = sp.Matrix([0, 0, 0]) # Automatically treats as a 4*1 column vector
+# g = sp.Matrix([[sp.cos(x[2]), 0], [sp.sin(x[2]), 0], [0, 1]]) # Automatically treats as a 4*2 matrix
 
 # TODO
 u1, u2, alpha = jl.cbf_solver()
@@ -54,7 +54,7 @@ psi_fx = sp.lambdify(x, psi_x, "numpy")
 
 np.random.seed(6)
 num_points = 100
-pts = np.random.random((3, num_points)) * 4 - 2
+pts = np.random.random((4, num_points)) * 4 - 2
 
 psi_vals = psi_fx(*pts)
 # psi1_vals = psi1_fx(*pts).squeeze()

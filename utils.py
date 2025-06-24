@@ -191,3 +191,59 @@ def traj_plot(pts_init, traj_x, traj_y, psi, phi=None):
     plt.title("Reach-Avoid Simulation for Dubins Car on a Track Field")
     plt.grid()
     plt.show()
+
+def u_plot(traj_ku, time_range):
+
+    px = 1/plt.rcParams["figure.dpi"]
+    fig, ax = plt.subplots(figsize=(640*px, 600*px), layout="constrained")
+    fig.set_dpi(150)
+
+
+    for i in range(traj_ku.shape[-1]):
+        t_span = np.linspace(1, time_range, traj_ku.shape[0])
+        if i == 0:
+            plt.plot(
+                t_span,
+                traj_ku[:, 0, i],
+                "red",
+                linewidth = 1,
+                alpha=0.4,
+                zorder = 2,
+                label='u_1'
+            )
+
+            plt.plot(
+                t_span,
+                traj_ku[:, 1, i],
+                "blue",
+                linewidth = 1,
+                alpha=0.4,
+                zorder = 2,
+                label='u_2'
+            )
+        else:
+            plt.plot(
+                t_span,
+                traj_ku[:, 0, i],
+                "red",
+                linewidth = 1,
+                alpha=0.4,
+                zorder = 2
+            )
+
+            plt.plot(
+                t_span,
+                traj_ku[:, 1, i],
+                "blue",
+                linewidth = 1,
+                alpha=0.4,
+                zorder = 2
+            )
+
+
+    plt.xlabel("$t$")
+    plt.ylabel("$k_u$")
+    plt.title("Control signal range")
+    plt.legend()
+    plt.grid()
+    plt.show()

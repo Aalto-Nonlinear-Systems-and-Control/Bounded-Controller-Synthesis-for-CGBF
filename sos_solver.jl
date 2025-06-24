@@ -7,12 +7,11 @@ using JuMP
 include("utils.jl")
 using .utilsModule: string2poly
 
-function sos_solver(; h_exp, g_exp, ds, du)
+function sos_solver(; h_exp, ds, du)
     """
     Args:
         ; (For kayword argumants syntax)
         h_exp: Julia math expression for safe region (h > 0)
-        g_exp: Julia math expression for target region (g > 0)
         ds: Degree of auxiliary polynomials
         du: Degree of control polynomials
     """
@@ -21,7 +20,6 @@ function sos_solver(; h_exp, g_exp, ds, du)
     vars = [x, y]
 
     h = string2poly(h_exp, x, y)
-    g = string2poly(g_exp, x, y)
 
     # Parameters
     xi0 = 1e-8
