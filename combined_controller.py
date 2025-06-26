@@ -96,14 +96,19 @@ psi_x = psi.subs({y[0]:x[0], y[1]:x[1]})
 psi_gamma_x = psi_gamma.subs({y[0]:x[0], y[1]:x[1]}) # Shape = (1, 1)
 psi_gamma_str = py_expr2julia_str(py_expr=psi_gamma_x[0], var_mapping=var_mapping)
 psi_gamma_indexed_str = convert_vars_to_indexed(psi_gamma_str)
+psi_x_str = py_expr2julia_str(py_expr=psi_x, var_mapping=var_mapping)
+psi_x_indexed_str = convert_vars_to_indexed(psi_x_str)
 
-with open("output.txt", "w") as file:
+
+with open("output_psi.txt", "w") as file:
     file.write(f"ku1:\n")
     file.write(ku1_indexed_str)
     file.write(f"\nku2:\n")
     file.write(ku2_indexed_str)
     file.write(f"\npsi gamma: \n")
     file.write(psi_gamma_indexed_str)
+    file.write(f"\npsi_x_index:\n")
+    file.write(psi_x_indexed_str)
 
 # np.random.seed(6)
 # num_points = 100

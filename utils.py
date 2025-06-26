@@ -251,3 +251,64 @@ def u_plot(traj_ku, time_range):
     plt.legend()
     plt.grid()
     plt.show()
+
+
+def julia_to_python_syntax(julia_expr):
+    """
+    Convert Julia-based syntax string to Python-based syntax string.
+    
+    Main conversions:
+    - x[1] -> x[0], x[2] -> x[1], etc. (1-based to 0-based indexing)
+    - ^ -> ** (exponentiation operator)
+    - Ensures proper function names are preserved (sin, cos, etc.)
+    
+    Args:
+        julia_expr (str): Julia syntax expression
+        
+    Returns:
+        str: Python syntax expression
+    """
+    # Start with the input expression
+    python_expr = julia_expr
+    
+    # Convert array indexing from 1-based to 0-based
+    # Pattern: x[number] where number >= 1
+    def convert_indexing(match):
+        var_name = match.group(1)
+        index = int(match.group(2))
+        return f"{var_name}[{index - 1}]"
+    
+    # Find all x[number] patterns and convert them
+    python_expr = re.sub(r'(\w+)\[(\d+)\]', convert_indexing, python_expr)
+    
+    # Convert exponentiation operator ^ to **
+    # We need to be careful not to convert ^ inside function names or other contexts
+    # This pattern looks for ^ that's not preceded by letters (to avoid function names)
+    python_expr = re.sub(r'\^', '**', python_expr)
+    
+    return python_expr
+
+# Test with your example
+if __name__ == "__main__":
+    julia_example = """-1.5*x[1] + 24.5*(1 - 0.285714285714286*x[2])^2 - 150.0625*(0.0816326530612245*x[1]^4 + 0.0816326530612245*x[2]^4 - 1)^2 - 280.633678724912*(-0.008432149543646558*x[1]^3 + 0.01432104402446673*x[1]^2*x[2] + 0.03607029642698979*x[1]^2 - 0.02270366350736754*x[1]*x[2]^2 - 0.02429498207125128*x[1]*x[2] + 0.080941266683892946*x[1] + 0.1999436532796817*x[2]^3 - 0.28180870972485791*x[2]^2 - 0.7095379997166807*x[2] + 0.0422099762227606*x[4]*sin(x[3]) + 1)^2/mu - 70.95018831336112*(0.2913188694454152*x[1]^3 - 0.027242857365120245*x[1]^2*x[2] - 0.21411863865522523*x[1]^2 + 0.25707997547260699*x[1]*x[2]^2 - 0.31631707637709617*x[1]*x[2] - x[1] - 0.018008316782829921*x[2]^3 - 0.01830723222023598*x[2]^2 + 0.093151705351324937*x[2] + 0.083947588679374198*x[4]*cos(x[3]) + 0.7320804198097999)^2/mu"""
+    
+    python_result = julia_to_python_syntax(julia_example)
+    print("Original Julia expression:")
+    print(julia_example)
+    print("\nConverted Python expression:")
+    print(python_result)
+    
+    # Test with simpler examples
+    print("\n" + "="*50)
+    print("Additional test cases:")
+    
+    test_cases = [
+        "x[1]^2 + x[2]^3",
+        "sin(x[1]) + cos(x[2]^2)",
+        "x[1]*x[2] + x[3]^4",
+        "(x[1] + x[2])^2"
+    ]
+    
+    for test in test_cases:
+        converted = julia_to_python_syntax(test)
+        print(f"'{test}' -> '{converted}'")
