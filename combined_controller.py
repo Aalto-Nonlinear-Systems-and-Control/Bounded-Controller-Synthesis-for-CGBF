@@ -166,7 +166,7 @@ index = np.nonzero((psi_vals >= 0) & (vals_psi_gamma >= 0) & (phi_vals > 0))
 
 pts_init = pts[:, index].squeeze(axis = 1)
 
-dt = 1e-4
+dt = 1e-5
 
 ku_traj = []
 pts_x_traj = [pts_init]
