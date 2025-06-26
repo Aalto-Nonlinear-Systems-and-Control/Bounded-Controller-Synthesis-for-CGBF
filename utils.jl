@@ -183,18 +183,6 @@ function str2expr(expr_str::String)
     return eval(parsed_expr)
 end
 
-function create_poly(expr_str)
-        # Parse the expression
-        expr = Meta.parse(expr_str)
-        
-        # Evaluate in a local scope with all variables defined
-        return @eval begin
-            let x = $x, mu = $mu, taylor_cos = $taylor_cos, taylor_sin = $taylor_sin
-                $expr
-            end
-        end
-    end
-
 end
 
 

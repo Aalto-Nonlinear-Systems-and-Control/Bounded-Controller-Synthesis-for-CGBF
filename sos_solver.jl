@@ -112,6 +112,7 @@ function sos_solver2(; psi_gamma_mu, psi, ku1_num, ku2_num, ku_den, u1_bound, u2
     optimize!(model)
     mu_poly = string(value(mu))
     # println(mu_poly)
-    return(mu_poly)
+    result = replace(mu_poly, r"x\[(\d+)\]" => s"x\1")
+    return(result)
 
 end

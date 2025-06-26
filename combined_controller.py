@@ -91,12 +91,6 @@ ku1_str = py_expr2julia_str(py_expr=ku_num[0], var_mapping=var_mapping)
 ku2_str = py_expr2julia_str(py_expr=ku_num[1], var_mapping=var_mapping)
 ku_den_str = py_expr2julia_str(py_expr=ku_den, var_mapping=var_mapping)
 
-dyn_cl = f + g * ku
-# dyn_cl = sp.simplify(dyn_cl)
-
-dyn_cl_f = sp.lambdify(x, dyn_cl, "numpy")
-ku_f = sp.lambdify(x, ku, "numpy")
-
 psi_gamma = sp.Matrix([psi]) - 1/(2*mu) * (Lfh - k1).T @ (Lfh - k1) # Shape = (1, 1)
 
 # TAG Convert from h(y) to h(x)
@@ -108,17 +102,17 @@ psi_gamma_x_mu = sp.simplify(psi_gamma_x * mu)
 psi_gamma_mu_str = py_expr2julia_str(py_expr=psi_gamma_x_mu[0], var_mapping=var_mapping)
 psi_x_str = py_expr2julia_str(py_expr=psi_x, var_mapping=var_mapping)
 
-with open("output_converted.txt", "w") as file:
-    file.write(f"ku1:\n")
-    file.write(ku1_str)
-    file.write(f"\nku2:\n")
-    file.write(ku2_str)
-    file.write(f"\npsi gamma: \n")
-    file.write(psi_gamma_mu_str)
-    file.write(f"\npsi_x_index:\n")
-    file.write(psi_x_str)
-    file.write(f"\nku_den_str:\n")
-    file.write(ku_den_str)
+# with open("output_converted.txt", "w") as file:
+#     file.write(f"ku1:\n")
+#     file.write(ku1_str)
+#     file.write(f"\nku2:\n")
+#     file.write(ku2_str)
+#     file.write(f"\npsi gamma: \n")
+#     file.write(psi_gamma_mu_str)
+#     file.write(f"\npsi_x_index:\n")
+#     file.write(psi_x_str)
+#     file.write(f"\nku_den_str:\n")
+#     file.write(ku_den_str)
 
 mu_str = jl.sos_solver2(
     psi_gamma_mu = psi_gamma_mu_str,
@@ -133,16 +127,27 @@ mu_str = jl.sos_solver2(
 )
 
 var_mapping2 = {
-    'x[1]': x[0],
-    'x[2]': x[1],
-    'x[3]': x[2],
-    'x[4]': x[3]
+    'x1': x[0],
+    'x2': x[1],
+    'x3': x[2],
+    'x4': x[3]
 }
 
-mu = julia_str2py_expr(
+mu_expr = julia_str2py_expr(
     julia_string=mu_str, 
     vars=x, 
     var_mapping=var_mapping2)
+
+# TAG substitute mu with mu_expr
+ku.subs(mu, mu_expr)
+psi_gamma_x.subs(mu, mu_expr)
+
+dyn_cl = f + g * ku
+
+dyn_cl_f = sp.lambdify(x, dyn_cl, "numpy")
+ku_f = sp.lambdify(x, ku, "numpy")
+
+
 
 np.random.seed(6)
 num_points = 500
