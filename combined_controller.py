@@ -57,9 +57,9 @@ G = Lfh.jacobian(x) @ g
 
 Dy_psi = psi_y.jacobian(y)
 
-item1 = -F
-item2 = mu * Dy_psi.T
-item3 = k1.jacobian(sp.Matrix([y[0], y[1]])) @ Lfh
+item1 = -F # Shape = (2, 1)
+item2 = mu * Dy_psi.T # Shape = (2, 1)
+item3 = k1.jacobian(sp.Matrix([y[0], y[1]])) @ Lfh # Shape = (2, 1)
 item4 = lambda_/2 * (Lfh - k1)
 item2 = item2.subs({y[0]:x[0], y[1]:x[1]})
 item3 = item3.subs({y[0]:x[0], y[1]:x[1]})
@@ -68,18 +68,28 @@ item4 = item4.subs({y[0]:x[0], y[1]:x[1]})
 # TODO send to sos
 ku = sp.inv_quick(G) @ (item1 + item2 + item3 + item4) # Shape = (2, 1)
 
-var_mapping = {
-    'x3': 'x4',
-    'x2': 'x3', 
-    'x1': 'x2',
-    'x0': 'x1',  
-    'mu': 'mu'
-    }
-ku1_str = py_expr2julia_str(py_expr=ku[0], var_mapping=var_mapping)
-ku2_str = py_expr2julia_str(py_expr=ku[1], var_mapping=var_mapping)
+ku_den = sp.det(G)
+ku_num = sp.simplify(ku_den * ku)
 
-ku1_indexed_str = convert_vars_to_indexed(ku1_str)
-ku2_indexed_str = convert_vars_to_indexed(ku2_str)
+var_mapping = {
+    'x3': 'x[4]',
+    'x2': 'x[3]', 
+    'x1': 'x[2]',
+    'x0': 'x[1]',  
+    'mu': 'mu',
+    'sin(x[4])': '(taylor_sin(x[4]))',
+    'sin(x[3])': '(taylor_sin(x[3]))',
+    'sin(x[2])': '(taylor_sin(x[2]))',
+    'sin(x[1])': '(taylor_sin(x[1]))',
+    'cos(x[4])': '(taylor_cos(x[4]))',
+    'cos(x[3])': '(taylor_cos(x[3]))',
+    'cos(x[2])': '(taylor_cos(x[2]))',
+    'cos(x[1])': '(taylor_cos(x[1]))',
+    }
+
+ku1_str = py_expr2julia_str(py_expr=ku_num[0], var_mapping=var_mapping)
+ku2_str = py_expr2julia_str(py_expr=ku_num[1], var_mapping=var_mapping)
+ku_den_str = py_expr2julia_str(py_expr=ku_den, var_mapping=var_mapping)
 
 dyn_cl = f + g * ku
 # dyn_cl = sp.simplify(dyn_cl)
@@ -94,71 +104,95 @@ phi_x = phi.subs({y[0]:x[0], y[1]:x[1]})
 psi_x = psi.subs({y[0]:x[0], y[1]:x[1]})
 # TODO send to sos
 psi_gamma_x = psi_gamma.subs({y[0]:x[0], y[1]:x[1]}) # Shape = (1, 1)
-psi_gamma_str = py_expr2julia_str(py_expr=psi_gamma_x[0], var_mapping=var_mapping)
-psi_gamma_indexed_str = convert_vars_to_indexed(psi_gamma_str)
+psi_gamma_x_mu = sp.simplify(psi_gamma_x * mu)
+psi_gamma_mu_str = py_expr2julia_str(py_expr=psi_gamma_x_mu[0], var_mapping=var_mapping)
 psi_x_str = py_expr2julia_str(py_expr=psi_x, var_mapping=var_mapping)
-psi_x_indexed_str = convert_vars_to_indexed(psi_x_str)
 
-
-with open("output_psi.txt", "w") as file:
+with open("output_converted.txt", "w") as file:
     file.write(f"ku1:\n")
-    file.write(ku1_indexed_str)
+    file.write(ku1_str)
     file.write(f"\nku2:\n")
-    file.write(ku2_indexed_str)
+    file.write(ku2_str)
     file.write(f"\npsi gamma: \n")
-    file.write(psi_gamma_indexed_str)
+    file.write(psi_gamma_mu_str)
     file.write(f"\npsi_x_index:\n")
-    file.write(psi_x_indexed_str)
+    file.write(psi_x_str)
+    file.write(f"\nku_den_str:\n")
+    file.write(ku_den_str)
 
-# np.random.seed(6)
-# num_points = 100
-# pts = np.random.random((4, num_points)) * 4 - 2
+mu_str = jl.sos_solver2(
+    psi_gamma_mu = psi_gamma_mu_str,
+    psi=psi_x_str,
+    ku1_num=ku1_str,
+    ku2_num=ku2_str,
+    ku_den=ku_den_str,
+    u1_bound=500,
+    u2_bound=1000,
+    dmu=6,
+    ds=8
+)
 
-# psi_fx = sp.lambdify(x, psi_x, "numpy")
-# phi_fx = sp.lambdify(x, phi_x, "numpy")
-# psi_gamma_fx = sp.lambdify(x, psi_gamma_x, "numpy")
+var_mapping2 = {
+    'x[1]': x[0],
+    'x[2]': x[1],
+    'x[3]': x[2],
+    'x[4]': x[3]
+}
 
-# vals_psi_gamma = psi_gamma_fx(*pts).squeeze()
-# psi_vals = psi_fx(*pts)
-# phi_vals = phi_fx(*pts)
+mu = julia_str2py_expr(
+    julia_string=mu_str, 
+    vars=x, 
+    var_mapping=var_mapping2)
 
-# # TAG Find pts that inside the safe set and outside the target set
-# index = np.nonzero((psi_vals >= 0) & (vals_psi_gamma >= 0) & (phi_vals > 0))
-# # index = np.nonzero((psi_vals >= 0) & (phi_vals > 0))
+np.random.seed(6)
+num_points = 500
+pts = np.random.random((4, num_points)) * 4 - 2
 
-# pts_init = pts[:, index].squeeze(axis = 1)
+psi_fx = sp.lambdify(x, psi_x, "numpy")
+phi_fx = sp.lambdify(x, phi_x, "numpy")
+psi_gamma_fx = sp.lambdify(x, psi_gamma_x, "numpy")
 
-# dt = 1e-4
+vals_psi_gamma = psi_gamma_fx(*pts).squeeze()
+psi_vals = psi_fx(*pts)
+phi_vals = phi_fx(*pts)
 
-# ku_traj = []
-# pts_x_traj = [pts_init]
-# pts_y_traj = [pts_init[[0, 1], :]]
+# TAG Find pts that inside the safe set and outside the target set
+index = np.nonzero((psi_vals >= 0) & (vals_psi_gamma >= 0) & (phi_vals > 0))
+# index = np.nonzero((psi_vals >= 0) & (phi_vals > 0))
 
-# time_range = 10000
-# for i in range(time_range):
-#     pts_cur = pts_x_traj[-1]
+pts_init = pts[:, index].squeeze(axis = 1)
 
-#     pts_x_next = (dt * dyn_cl_f(*pts_cur)).squeeze(axis=1) + pts_cur
-#     pts_y_next = pts_x_next[[0, 1], :]
-#     ku_next = ku_f(*pts_cur).squeeze(axis=1)
+dt = 1e-4
 
-#     pts_x_traj.append(pts_x_next)
-#     pts_y_traj.append(pts_y_next)
-#     ku_traj.append(ku_next)
+ku_traj = []
+pts_x_traj = [pts_init]
+pts_y_traj = [pts_init[[0, 1], :]]
 
-# traj_x = np.stack(pts_x_traj)
-# traj_y = np.stack(pts_y_traj)
-# traj_ku = np.stack(ku_traj)
+time_range = 10000
+for i in range(time_range):
+    pts_cur = pts_x_traj[-1]
 
-# traj_plot(
-#     pts_init=pts_init,
-#     traj_x=traj_x,
-#     traj_y=traj_y,
-#     psi=sp.lambdify(y, psi, "numpy")
-#     # phi=sp.lambdify(y, phi, "numpy")
-# )
+    pts_x_next = (dt * dyn_cl_f(*pts_cur)).squeeze(axis=1) + pts_cur
+    pts_y_next = pts_x_next[[0, 1], :]
+    ku_next = ku_f(*pts_cur).squeeze(axis=1)
 
-# u_plot(
-#     traj_ku=traj_ku,
-#     time_range=time_range
-# )
+    pts_x_traj.append(pts_x_next)
+    pts_y_traj.append(pts_y_next)
+    ku_traj.append(ku_next)
+
+traj_x = np.stack(pts_x_traj)
+traj_y = np.stack(pts_y_traj)
+traj_ku = np.stack(ku_traj)
+
+traj_plot(
+    pts_init=pts_init,
+    traj_x=traj_x,
+    traj_y=traj_y,
+    psi=sp.lambdify(y, psi, "numpy")
+    # phi=sp.lambdify(y, phi, "numpy")
+)
+
+u_plot(
+    traj_ku=traj_ku,
+    time_range=time_range
+)

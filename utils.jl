@@ -178,6 +178,23 @@ function compute_streamline(x0, y0, P_func, Q_func, xrange, yrange, max_steps=20
     return x_stream, y_stream
 end
 
+function str2expr(expr_str::String)
+    parsed_expr = Meta.parse(expr_str)
+    return eval(parsed_expr)
+end
+
+function create_poly(expr_str)
+        # Parse the expression
+        expr = Meta.parse(expr_str)
+        
+        # Evaluate in a local scope with all variables defined
+        return @eval begin
+            let x = $x, mu = $mu, taylor_cos = $taylor_cos, taylor_sin = $taylor_sin
+                $expr
+            end
+        end
+    end
+
 end
 
 
