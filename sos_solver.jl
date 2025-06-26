@@ -92,18 +92,18 @@ function sos_solver2(; psi_gamma_mu, psi, ku1_num, ku2_num, ku_den, u1_bound, u2
     @variable(model, s12, Poly(monos_ms))
 
     psi_gamma_mu = create_poly(psi_gamma_mu, x, mu)
-    # psi = create_poly(psi, x)
-    # ku1_num = create_poly(ku1_num, x)
-    # ku2_num = create_poly(ku2_num, x)
-    # ku_den = create_poly(ku_den, x)
+    psi = create_poly(psi, x, mu)
+    ku1_num = create_poly(ku1_num, x, mu)
+    ku2_num = create_poly(ku2_num, x, mu)
+    ku_den = create_poly(ku_den, x, mu)
 
     # TAG add constraints
     @constraint(model, mu >= 0)
     @constraint(model, psi_gamma_mu + delta >= 0)
-    # @constraint(model, u1_bound * ku_den^2 - ku1_num * ku_den - s11 * psi >= 0)
-    # @constraint(model, u1_bound * ku_den^2 + ku1_num * ku_den - s12 * psi >= 0)
-    # @constraint(model, s11 >= 0)
-    # @constraint(model, s12 >= 0)
+    @constraint(model, u1_bound * ku_den^2 - ku1_num * ku_den - s11 * psi >= 0)
+    @constraint(model, u1_bound * ku_den^2 + ku1_num * ku_den - s12 * psi >= 0)
+    @constraint(model, s11 >= 0)
+    @constraint(model, s12 >= 0)
     # @constraint(model, u2_bound * ku_den^2 - ku2_num * ku_den - 0 * psi_gamma >= 0)
     # @constraint(model, u2_bound * ku_den^2 + ku2_num * ku_den - 0 * psi_gamma >= 0)
 

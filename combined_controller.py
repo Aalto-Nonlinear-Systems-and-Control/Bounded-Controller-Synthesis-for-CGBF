@@ -139,14 +139,13 @@ mu_expr = julia_str2py_expr(
     var_mapping=var_mapping2)
 
 # TAG substitute mu with mu_expr
-ku.subs(mu, mu_expr)
-psi_gamma_x.subs(mu, mu_expr)
+ku = ku.subs(mu, mu_expr)
+psi_gamma_x = psi_gamma_x.subs(mu, mu_expr)
 
 dyn_cl = f + g * ku
 
 dyn_cl_f = sp.lambdify(x, dyn_cl, "numpy")
 ku_f = sp.lambdify(x, ku, "numpy")
-
 
 
 np.random.seed(6)
