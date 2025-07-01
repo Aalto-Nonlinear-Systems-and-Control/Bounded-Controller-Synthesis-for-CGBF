@@ -69,7 +69,9 @@ item4 = item4.subs({y[0]:x[0], y[1]:x[1]})
 ku = sp.inv_quick(G) @ (item1 + item2 + item3 + item4) # Shape = (2, 1)
 
 ku_den = sp.det(G)
-ku_num = sp.simplify(ku_den * ku)
+# ku_num = sp.simplify(ku_den * ku)
+# NOTE: Only for 2*2 matrix:
+ku_num = G.adjugate() @ (item1 + item2 + item3 + item4)
 
 var_mapping = {
     'x3': 'x[4]',
@@ -91,14 +93,15 @@ ku1_str = py_expr2julia_str(py_expr=ku_num[0], var_mapping=var_mapping)
 ku2_str = py_expr2julia_str(py_expr=ku_num[1], var_mapping=var_mapping)
 ku_den_str = py_expr2julia_str(py_expr=ku_den, var_mapping=var_mapping)
 
-psi_gamma = sp.Matrix([psi]) - 1/(2*mu) * (Lfh - k1).T @ (Lfh - k1) # Shape = (1, 1)
+# psi_gamma = sp.Matrix([psi]) - 1/(2*mu) * (Lfh - k1).T @ (Lfh - k1) # Shape = (1, 1)
+psi_gamma_mu = sp.Matrix([psi]) * mu - 1/2 * (Lfh - k1).T @ (Lfh - k1)
 
 # TAG Convert from h(y) to h(x)
 phi_x = phi.subs({y[0]:x[0], y[1]:x[1]})
 psi_x = psi.subs({y[0]:x[0], y[1]:x[1]})
 # TODO send to sos
-psi_gamma_x = psi_gamma.subs({y[0]:x[0], y[1]:x[1]}) # Shape = (1, 1)
-psi_gamma_x_mu = sp.simplify(psi_gamma_x * mu)
+psi_gamma_x_mu = psi_gamma_mu.subs({y[0]:x[0], y[1]:x[1]}) # Shape = (1, 1)
+psi_gamma_x = psi_gamma_x_mu / mu
 psi_gamma_mu_str = py_expr2julia_str(py_expr=psi_gamma_x_mu[0], var_mapping=var_mapping)
 psi_x_str = py_expr2julia_str(py_expr=psi_x, var_mapping=var_mapping)
 
@@ -114,14 +117,14 @@ psi_x_str = py_expr2julia_str(py_expr=psi_x, var_mapping=var_mapping)
 #     file.write(f"\nku_den_str:\n")
 #     file.write(ku_den_str)
 
-mu_str = jl.sos_solver2(
+mu_str = jl.sos_solver3(
     psi_gamma_mu = psi_gamma_mu_str,
     psi=psi_x_str,
     ku1_num=ku1_str,
     ku2_num=ku2_str,
     ku_den=ku_den_str,
     u1_bound=500,
-    u2_bound=1000,
+    u2_bound=500,
     dmu=6,
     ds=8
 )
@@ -166,7 +169,7 @@ index = np.nonzero((psi_vals >= 0) & (vals_psi_gamma >= 0) & (phi_vals > 0))
 
 pts_init = pts[:, index].squeeze(axis = 1)
 
-dt = 1e-5
+dt = 1e-4
 
 ku_traj = []
 pts_x_traj = [pts_init]
