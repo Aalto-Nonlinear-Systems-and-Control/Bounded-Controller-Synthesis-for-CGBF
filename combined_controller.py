@@ -136,10 +136,11 @@ var_mapping2 = {
     'x4': x[3]
 }
 
-mu_expr = julia_str2py_expr(
-    julia_string=mu_str, 
-    vars=x, 
-    var_mapping=var_mapping2)
+mu_expr = mu_str
+# mu_expr = julia_str2py_expr(
+#     julia_string=mu_str, 
+#     vars=x, 
+#     var_mapping=var_mapping2)
 
 # TAG substitute mu with mu_expr
 ku = ku.subs(mu, mu_expr)
@@ -169,7 +170,7 @@ index = np.nonzero((psi_vals >= 0) & (vals_psi_gamma >= 0) & (phi_vals > 0))
 
 pts_init = pts[:, index].squeeze(axis = 1)
 
-dt = 1e-4
+dt = 1e-5
 
 ku_traj = []
 pts_x_traj = [pts_init]
