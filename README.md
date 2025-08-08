@@ -23,7 +23,7 @@ See [`Docs/Bounded_Controller_Synthesis_for_CGBF_Controller.pdf`](./Docs/Bounded
     - `sos_solver`: Original SOS solver for the CGBF problem.
     - `sos_solver2`: Solver for control bounds with polynomial decision variable $\mu$.
     - `sos_solver3`: Solver for control bounds with scalar decision variable $\mu$.
-- `combined_controller.jl`: CGBF controller with additional SOS constraints to enforce control bounds (depends on `sos_solver.jl`).
+- <mark>`combined_controller.jl`: CGBF controller with additional SOS constraints to enforce control bounds (depends on `sos_solver.jl`).</mark>
 - `utils.py`: Python utility functions.
 - `utils.jl`: Julia utility functions.
 
